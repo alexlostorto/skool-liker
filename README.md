@@ -4,7 +4,7 @@
   <b>An extension designed to automate likes on Skool!</b>
 </p>
 
-[![Maintainability](https://img.shields.io/codeclimate/maintainability/alexlostorto/skool-liker?style=for-the-badge&message=Code+Climate&labelColor=222222&logo=Code+Climate&logoColor=FFFFFF)](https://codeclimate.com/github/alexlostorto/skool-liker/maintainability)
+[![Maintainability](https://img.shields.io/codeclimate/maintainability/alexlostorto/skool-liker?style=for-the-badge&message=Code+Climate&labelColor=222222&logo=Code+Climate&logoColor=FFF)](https://codeclimate.com/github/alexlostorto/skool-liker/maintainability)
 ![User Count](https://vbr.wocr.tk/badge?page_id=alexlostorto.skool-liker&text=users&lcolor=222222&color=ffc500&style=for-the-badge&logo=Github)
 
 Welcome to my **Skool Liker Bot**! Please read the **terms and conditions** [**here**](T&C.txt) before using the extension.
