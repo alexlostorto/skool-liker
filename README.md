@@ -22,7 +22,7 @@ Welcome to my **Skool Liker Bot**! Please read the **terms and conditions** [**h
 
 ## ⚡ Quick setup
 
-1. Go to [**https://www.linkedin.com/mynetwork**](https://www.linkedin.com/mynetwork)
+1. Go to [**https://www.skool.com**](https://www.skool.com)
 2. Open the **Developers Console** with _Ctrl + Shift + J_
 3. **Copy** and **paste** the code from [**console.js**](console/console.js) into the browser's developer console.
 4. Replace the variables below with **appropriate** values (separated by a space).
