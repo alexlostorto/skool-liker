@@ -28,8 +28,7 @@ Welcome to my **Skool Liker Bot**! Please read the **terms and conditions** [**h
 4. Replace the variables below with **appropriate** values (separated by a space).
 
 ```js
-let descriptions = ''; // Example: 'software engineer computer'
-let actions = ''; // Example: 'connect follow'
+let delay = 100; // i.e. 100 milliseconds
 ```
 
 5. Star the repo 😄
