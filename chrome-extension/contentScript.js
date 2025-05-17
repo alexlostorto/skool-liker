@@ -18,7 +18,7 @@ async function main() {
     console.log("Running");
 
     working = true;
-    const likeButtons = document.querySelectorAll('button.gUUwux.styled__VoteButton-sc-1e3d9on-2');
+    const likeButtons = document.querySelectorAll('button.hTWzCz.styled__VoteButton-sc-1e3d9on-2');
 
     let i = 0;
     function clickButtons() {
