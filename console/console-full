@@ -1,0 +1,299 @@
+console.log("Skool Liker - Version Navigation Automatique (FINALE)");
+
+// Configuration
+const config = {
+    minDelay: 1500,         // Délai minimum entre les likes (1.5 secondes)
+    maxDelay: 4000,         // Délai maximum entre les likes (4 secondes)
+    pauseEvery: 5,          // Pause tous les X likes
+    pauseMinDuration: 3000, // Durée minimum de pause (3 secondes)
+    pauseMaxDuration: 8000, // Durée maximum de pause (8 secondes)
+    
+    // Navigation
+    startAtPost: 4,         // Commencer au Xième post
+    postsToProcess: 10,     // Nombre de posts à traiter
+    delayBeforeOpenPost: 2000,  // Attendre avant d'ouvrir un post
+    delayAfterLiking: 3000,     // Attendre après avoir liké dans un post
+    delayBeforeBack: 2000,      // Attendre avant de revenir en arrière
+};
+
+let working = false;
+let currentPostIndex = config.startAtPost - 1;
+let postsProcessed = 0;
+let totalLikes = 0;
+let mainPageUrl = window.location.pathname;
+
+// Fonction pour générer un délai aléatoire
+function getRandomDelay(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Fonction pour scroller vers un élément
+function scrollToElement(element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Fonction pour obtenir tous les posts (titres cliquables)
+function getPostLinks() {
+    console.log("🔍 Recherche des posts sur la page...");
+    
+    // Chercher les liens de titres de posts dans la structure Skool
+    // Format: <a href="/bbqfr/titre-du-post" class="styled__ChildrenLink...">
+    const titleLinks = Array.from(document.querySelectorAll('a.styled__ChildrenLink-sc-1brgbbt-1'));
+    
+    // Filtrer pour ne garder que les liens de posts (pas les profils, pas les catégories)
+    const postLinks = titleLinks.filter(link => {
+        const href = link.getAttribute('href') || '';
+        // Un post a un URL comme: /bbqfr/titre-du-post (sans @ et sans ?c= et sans ?)
+        return href.startsWith('/') && 
+               !href.includes('@') && 
+               !href.includes('?') && 
+               href.split('/').length === 3 && // Format: /group/post-slug
+               href.split('/')[2].length > 0;  // Le slug n'est pas vide
+    });
+    
+    // Supprimer les doublons
+    const uniquePostLinks = postLinks.filter((link, index, self) => 
+        index === self.findIndex(l => l.href === link.href)
+    );
+    
+    console.log(`✓ ${uniquePostLinks.length} posts trouvés`);
+    
+    if (uniquePostLinks.length > 0) {
+        // Afficher les premiers posts pour confirmation
+        console.log("\n📋 Premiers posts détectés:");
+        uniquePostLinks.slice(0, 5).forEach((link, i) => {
+            const title = link.textContent.trim().substring(0, 50);
+            console.log(`   ${i + 1}. ${title}...`);
+        });
+        console.log("");
+    }
+    
+    return uniquePostLinks;
+}
+
+// Vérifier si on est dans un post
+function isInPostPage() {
+    const path = window.location.pathname;
+    // On est dans un post si l'URL a 3 parties: /group/post-slug
+    return path.split('/').length === 3 && path.split('/')[2].length > 0 && !path.includes('?');
+}
+
+// Fonction pour liker tous les commentaires d'un post
+async function likeCommentsInPost() {
+    console.log("\n🔍 Recherche des boutons like dans ce post...");
+    
+    // Attendre que la page charge complètement
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const likeButtons = document.querySelectorAll('button.styled__VoteButton-sc-1e3d9on-2');
+    
+    if (likeButtons.length === 0) {
+        console.log("⚠️ Aucun bouton like trouvé dans ce post.");
+        console.log("💡 Ce post n'a peut-être pas de commentaires.");
+        return 0;
+    }
+
+    console.log(`✓ ${likeButtons.length} boutons trouvés (post principal + commentaires)\n`);
+
+    let i = 0;
+    let likedCount = 0;
+    let alreadyLikedCount = 0;
+    
+    return new Promise((resolve) => {
+        function clickButtons() {
+            let currentDelay = getRandomDelay(config.minDelay, config.maxDelay);
+            
+            // Pause tous les X likes
+            if (likedCount > 0 && likedCount % config.pauseEvery === 0) {
+                const pauseDuration = getRandomDelay(config.pauseMinDuration, config.pauseMaxDuration);
+                console.log(`\n⏸️  Pause de ${(pauseDuration / 1000).toFixed(1)}s...\n`);
+                currentDelay = pauseDuration;
+            }
+            
+            setTimeout(function() {
+                try {
+                    let likeButton = likeButtons[i];
+
+                    const originalBorder = likeButton.style.border;
+                    const originalBackground = likeButton.style.backgroundColor;
+                    
+                    likeButton.style.border = '3px solid red';
+                    likeButton.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+                    
+                    // Scroll vers le bouton
+                    scrollToElement(likeButton);
+                    
+                    // Détection: vérifier la présence de <rect> dans le SVG
+                    const svg = likeButton.querySelector('svg');
+                    const rects = svg ? svg.querySelectorAll('rect') : [];
+                    const isLiked = rects.length > 0;
+                    
+                    if (!isLiked) {
+                        likeButton.click();
+                        likedCount++;
+                        totalLikes++;
+                        
+                        const nextDelay = i < likeButtons.length - 1 ? 
+                            getRandomDelay(config.minDelay, config.maxDelay) : 0;
+                        
+                        // Identifier si c'est le post principal ou un commentaire
+                        const isMainPost = i === 0; // Le premier bouton est souvent le post principal
+                        const label = isMainPost ? "📌 Post principal" : `💬 Commentaire ${likedCount}`;
+                        
+                        console.log(`✓ ${label} liké | Prochain dans ${(nextDelay / 1000).toFixed(1)}s`);
+                        
+                        setTimeout(() => {
+                            likeButton.style.border = '3px solid green';
+                            likeButton.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+                        }, 100);
+                    } else {
+                        alreadyLikedCount++;
+                        console.log(`⊘ Déjà liké (${alreadyLikedCount})`);
+                        
+                        likeButton.style.border = '3px solid orange';
+                        likeButton.style.backgroundColor = 'rgba(255, 165, 0, 0.1)';
+                    }
+                    
+                    setTimeout(() => {
+                        likeButton.style.border = originalBorder;
+                        likeButton.style.backgroundColor = originalBackground;
+                    }, 600);
+                    
+                } catch(err) {
+                    console.error(`❌ Erreur:`, err);
+                }
+                
+                i++;
+                if (i < likeButtons.length) {
+                    clickButtons();
+                } else {
+                    console.log(`\n✅ Post terminé: ${likedCount} likes ajoutés (incluant le post principal), ${alreadyLikedCount} ignorés\n`);
+                    resolve(likedCount);
+                }
+            }, currentDelay);
+        }
+        
+        clickButtons();
+    });
+}
+
+// Fonction principale de navigation
+async function navigateAndLike() {
+    if (working) return;
+    working = true;
+    
+    console.log("\n" + '═'.repeat(60));
+    console.log(`🚀 CYCLE ${postsProcessed + 1}/${config.postsToProcess}`);
+    console.log('═'.repeat(60) + '\n');
+    
+    // Si on est dans un post, revenir en arrière d'abord
+    if (isInPostPage()) {
+        console.log("🔙 Retour à la page principale...");
+        await new Promise(resolve => setTimeout(resolve, config.delayBeforeBack));
+        window.history.back();
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre le chargement
+    }
+    
+    // Obtenir les posts disponibles
+    const postLinks = getPostLinks();
+    
+    if (postLinks.length === 0) {
+        console.log("\n❌ ERREUR: Aucun post trouvé sur la page.");
+        console.log("\n💡 Solutions:");
+        console.log("   1. Vérifiez que vous êtes sur la page principale d'un groupe");
+        console.log("   2. Scrollez vers le bas pour charger des posts");
+        console.log("   3. Rechargez la page et réessayez");
+        working = false;
+        return;
+    }
+    
+    // Vérifier si on a encore des posts à traiter
+    if (currentPostIndex >= postLinks.length) {
+        console.log("⚠️ Plus de posts disponibles sur cette page.");
+        console.log("💡 Scrollez vers le bas pour charger plus de posts ou recommencez.");
+        working = false;
+        return;
+    }
+    
+    if (postsProcessed >= config.postsToProcess) {
+        console.log("\n" + '═'.repeat(60));
+        console.log(`🎉 MISSION ACCOMPLIE!`);
+        console.log(`   • ${config.postsToProcess} posts traités`);
+        console.log(`   • ${totalLikes} likes ajoutés au total`);
+        console.log('═'.repeat(60) + '\n');
+        working = false;
+        return;
+    }
+    
+    // Sélectionner le post actuel
+    const currentPost = postLinks[currentPostIndex];
+    const postTitle = currentPost.textContent.trim().substring(0, 60);
+    console.log(`📍 Post ${currentPostIndex + 1}/${postLinks.length}`);
+    console.log(`📄 Titre: ${postTitle}...`);
+    console.log(`🔗 URL: ${currentPost.href}`);
+    
+    // Scroll vers le post
+    scrollToElement(currentPost);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Attendre avant d'ouvrir
+    console.log(`⏳ Ouverture dans ${config.delayBeforeOpenPost / 1000}s...`);
+    await new Promise(resolve => setTimeout(resolve, config.delayBeforeOpenPost));
+    
+    // Ouvrir le post
+    console.log("📂 Ouverture du post...\n");
+    currentPost.click();
+    
+    // Attendre le chargement du post
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    
+    // Liker les commentaires
+    const likesAdded = await likeCommentsInPost();
+    
+    // Attendre avant de continuer
+    console.log(`\n⏳ Attente de ${config.delayAfterLiking / 1000}s avant de continuer...`);
+    await new Promise(resolve => setTimeout(resolve, config.delayAfterLiking));
+    
+    // Incrémenter les compteurs
+    currentPostIndex++;
+    postsProcessed++;
+    
+    working = false;
+    
+    // Continuer avec le prochain post
+    if (postsProcessed < config.postsToProcess) {
+        const nextDelay = getRandomDelay(3000, 6000);
+        console.log(`\n⏭️  Prochain post dans ${(nextDelay / 1000).toFixed(1)}s...\n`);
+        setTimeout(navigateAndLike, nextDelay);
+    }
+}
+
+// Message de bienvenue
+console.log("\n" + '═'.repeat(60));
+console.log("   🎯 SKOOL LIKER - NAVIGATION AUTOMATIQUE");
+console.log('═'.repeat(60));
+console.log("\n📊 Configuration:");
+console.log(`   • Commence au post n°${config.startAtPost}`);
+console.log(`   • Traite ${config.postsToProcess} posts au total`);
+console.log(`   • Délai entre likes: ${config.minDelay / 1000}s - ${config.maxDelay / 1000}s`);
+console.log(`   • Pause tous les ${config.pauseEvery} likes`);
+console.log("\n🎨 Indicateurs visuels:");
+console.log("   🔴 Rouge = Vérification");
+console.log("   🟢 Vert = Like ajouté");
+console.log("   🟠 Orange = Déjà liké");
+console.log("\n⚠️  IMPORTANT:");
+console.log("   • Restez sur la page principale d'un groupe");
+console.log("   • Le script naviguera automatiquement");
+console.log("   • Ne touchez pas à la navigation pendant l'exécution");
+console.log('═'.repeat(60) + '\n');
+
+// Vérifier si on est sur la bonne page
+if (isInPostPage()) {
+    console.log("⚠️  Vous êtes dans un post individuel.");
+    console.log("💡 Retournez à la page principale du groupe pour commencer.\n");
+}
+
+// Démarrage
+const initialDelay = getRandomDelay(3000, 5000);
+console.log(`⏳ Démarrage dans ${(initialDelay / 1000).toFixed(1)}s...\n`);
+setTimeout(navigateAndLike, initialDelay);
