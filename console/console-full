@@ -17,7 +17,7 @@ const config = {
 };
 
 let working = false;
-let currentPostIndex = config.startAtPost - 1;
+let currentPostIndex = 0; // On commence toujours à 0 dans le tableau
 let postsProcessed = 0;
 let totalLikes = 0;
 let mainPageUrl = window.location.pathname;
@@ -225,10 +225,16 @@ async function navigateAndLike() {
         return;
     }
     
+    // Appliquer le startAtPost: sauter les premiers posts si nécessaire
+    if (postsProcessed === 0 && config.startAtPost > 1) {
+        currentPostIndex = config.startAtPost - 1;
+        console.log(`⏭️  Saut des ${config.startAtPost - 1} premiers posts\n`);
+    }
+    
     // Sélectionner le post actuel
     const currentPost = postLinks[currentPostIndex];
     const postTitle = currentPost.textContent.trim().substring(0, 60);
-    console.log(`📍 Post ${currentPostIndex + 1}/${postLinks.length}`);
+    console.log(`📍 Post ${currentPostIndex + 1}/${postLinks.length} (Traité: ${postsProcessed + 1}/${config.postsToProcess})`);
     console.log(`📄 Titre: ${postTitle}...`);
     console.log(`🔗 URL: ${currentPost.href}`);
     
